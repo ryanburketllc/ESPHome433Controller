@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+   <title>Catbox</title>
+   <meta charset="UTF-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3.0, minimum-scale=1">
+   <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+   <link rel="stylesheet" href="https://www.w3schools.com/lib/w3-theme-black.css">
+   <link href="https://fonts.googleapis.com/css?family=Roboto:100" rel="stylesheet" type="text/css">
+   <link href="https://fonts.googleapis.com/css?family=Roboto+Mono:100" rel="stylesheet" type="text/css">
+   <link href="favicon.ico" rel="icon" type="image/x-icon" />
+   <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"
+      integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo"
+      crossorigin="anonymous"></script>
+   <!-- <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"
+      integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1"
+      crossorigin="anonymous"></script> -->
+   <script>
+      $(document).ready(function () {
+
+         getStartData();
+         getSettings();
+
+         function getStartData() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+               if (this.readyState == 4 && this.status == 200) {
+                  var data = this.responseText;
+                  var json = JSON.parse(data);
+                  document.title = json.title;
+                  document.getElementById("BoxID").innerHTML = json.title;
+                  document.getElementById("BoxVersion").innerHTML = json.version;
+               }
+            };
+            xhttp.open("GET", "/JSONSTART", true);
+            xhttp.send();
+         }
+
+         function getSettings() {
+            var xmlhttp = new XMLHttpRequest();
+            xmlhttp.onreadystatechange = function () {
+               if (this.readyState == 4 && this.status == 200) {
+                  var data = this.responseText;
+                  var json = JSON.parse(data);
+                  document.getElementById("wifi").innerHTML = json.wifi;
+                  document.getElementById("pass").innerHTML = json.pass;
+                  document.getElementById("name").innerHTML = json.name;
+                  document.getElementById("poo").innerHTML = json.poo;
+                  document.getElementById("pee").innerHTML = json.pee;
+                  document.getElementById("pad").innerHTML = json.pad;
+                  document.getElementById("lit").innerHTML = json.lit;
+                  document.getElementById("box").innerHTML = json.box;
+                  document.getElementById("peetime").innerHTML = json.peetime;
+                  document.getElementById("mintime").innerHTML = json.mintime;
+                  document.getElementById("expires").innerHTML = json.expires;
+                  document.getElementById("zone").innerHTML = json.zone;
+                  document.getElementById("key").innerHTML = json.key;
+                  document.getElementById("server").innerHTML = json.server;
+               }
+            };
+            xmlhttp.open("GET", "/JSONSETTINGS", true);
+            xmlhttp.send();
+         }
+
+      });
+   </script>
+   <style>
+      body,
+      a,
+      button,
+      pre,
+      h1,
+      h2,
+      h3,
+      h4,
+      h5,
+      h6 {
+         font-family: "Roboto", sans-serif;
+         margin: 0px 0px 0px 0px;
+         padding: 0px 0px 0px 0px;
+      }
+
+      body,
+      html {
+         height: 100%;
+         width: 100%;
+      }
+
+      hr,
+      .div {
+         margin: 1vh;
+         padding: 0vh;
+      }
+   </style>
+</head>
+
+<body class="w3-theme-dark" style="min-width: 30%; align-self: auto;">
+   <div style="text-align: center">
+      <h1><b>Setup <span id="BoxID">BoxID</span></b></h1>
+   </div>
+   <hr class="w3-border-grey">
+   <div class="w3-row-padding">
+      <div class="w3-half">
+         <label>Network Name (max 30)</label>
+         <input id="wifi" class="w3-input w3-theme-l4" type="text" placeholder="Network Name">
+      </div>
+      <div class="w3-half">
+         <label>Network Passcode (max 30)</label>
+         <input id="pass" class="w3-input w3-theme-l4" type="text" placeholder="Network Password">
+      </div>
+      <div class="w3-row-padding">
+         <label>Catbox Name (max 20)</label>
+         <input id="name" class="w3-input w3-theme-l4" type="text" placeholder="Boxname">
+      </div>
+      <div class="w3-third">
+         <label>Poos before "dirty"</label>
+         <select id="poo" class="w3-select w3-theme-l4" name="option">
+            <option value="1">1</option>
+            <option value="2" selected>2 (Default)</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+         </select>
+      </div>
+      <div class="w3-third">
+         <label>Pees before "dirty"</label>
+         <select id="pee" class="w3-select w3-theme-l4" name="option">
+            <option value="2">2</option>
+            <option value="4" selected>4 (Default)</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+         </select>
+      </div>
+      <div class="w3-third">
+         <label>Pee time max</label>
+         <select id="peetime" class="w3-select w3-theme-l4" name="option">
+            <option value="30">30 Seconds</option>
+            <option value="45">45 Seconds</option>
+            <option value="60" selected>60 Seconds (Default)</option>
+            <option value="75">75 Seconds</option>
+         </select>
+      </div>
+      <div class="w3-third">
+         <label>Minimum time to count...</label>
+         <select id="mintime" class="w3-select w3-theme-l4" name="option">
+            <option value="10">10 Seconds</option>
+            <option value="15" selected>15 Seconds (Default)</option>
+            <option value="20">20 Seconds</option>
+            <option value="25">25 Seconds</option>
+            <option value="30">30 Seconds</option>
+         </select>
+      </div>
+      <div class="w3-third">
+         <label>Usage time expires in...</label>
+         <select id="expires" class="w3-select w3-theme-l4" name="option">
+            <option value="10">10 Seconds</option>
+            <option value="15" selected>15 Seconds (Default)</option>
+            <option value="20">20 Seconds</option>
+            <option value="25">25 Seconds</option>
+            <option value="30">30 Seconds</option>
+         </select>
+      </div>
+      <div class="w3-third">
+         <label>Litter replacement in...</label>
+         <select id="lit" class="w3-select w3-theme-l4" name="option">
+            <option value="15">15 Uses</option>
+            <option value="30">30 Uses</option>
+            <option value="45" selected>45 Uses (Default)</option>
+            <option value="60">60 Uses</option>
+         </select>
+      </div>
+      <div class="w3-third">
+         <label>Peepad replacement in...</label>
+         <select id="pad" class="w3-select w3-theme-l4" name="option">
+            <option value="5">5 Uses</option>
+            <option value="10">10 Uses</option>
+            <option value="15" selected>15 Uses (Default)</option>
+            <option value="20">20 Uses</option>
+         </select>
+      </div>
+      <div class="w3-third">
+         <label>Days before deep clean</label>
+         <select id="box" class="w3-select w3-theme-l4" name="option">
+            <option value="15">15 Days</option>
+            <option value="30" selected>30 Days (Default)</option>
+            <option value="45">45 Days</option>
+            <option value="60">60 Days</option>
+         </select>
+      </div>
+      <div class="w3-third">
+         <label>Timezone</label>
+         <select id="zone" class="w3-select w3-theme-l4" name="option">
+            <option value="" disabled selected>Choose your option</option>
+            <option value="EASTERN">Eastern (UTC-4)</option>
+            <option value="CENTRAL">Central (UTC-5)</option>
+            <option value="MOUNTAIN">Mountain (UTC-6)</option>
+            <option value="PACIFIC">Pacific (UTC-7)</option>
+         </select>
+      </div>
+      <div class="w3-row-padding">
+         <label>Cloud Key</label>
+         <input id="key" class="w3-input w3-theme-l4 " type="text" placeholder="CloudKey">
+      </div>
+      <div class="w3-row-padding">
+         <label>Cloud Server</label>
+         <input id="server" class="w3-input w3-theme-l4 " type="text" placeholder="CloudServer">
+      </div>
+   </div>
+   <hr class="w3-border-grey">
+   <div class="w3-section w3-center">
+      <div>
+         <a id="btnUsage" href="/index.html" class="w3-button w3-round-xlarge w3-padding-small">Back</a>
+         <button id="btnStats" class="w3-button w3-round-xlarge w3-padding-small">Save Settings</button>
+         <a id="btnSettings" href="/RECALIBRATE" class="w3-button w3-round-xlarge w3-padding-small">Recalibrate
+            Sensor</a>
+         <a id="btnRestart" href="/RESTART" class="w3-button w3-round-xlarge w3-padding-small">Restart</a>
+      </div>
+      <div>
+         <span id="BoxVersion">Version</span>
+      </div>
+   </div>
+</body>
+
+</html>
