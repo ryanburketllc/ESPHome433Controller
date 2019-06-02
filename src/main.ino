@@ -13,7 +13,7 @@
 #include <WiFi.h>
 
 #include "staticpages.h"
-#include "output.h"
+// #include "output.h"
 
 #define SECSINDAY 86400UL
 #define SECSINHOUR 3600UL
@@ -23,27 +23,27 @@
 #define TX_PIN 12
 #define RX_PIN 27
 
-// const uint32_t codesALL[3][8] = {
-//     {35885076, 19107860, 35883028, 19105812, 35887124, 19109908, 34832404, 18055188},
-//     {35754004, 18976788, 35751956, 18974740, 35756052, 18978836, 34701332, 17924116},
-//     {35819540, 19042324, 35817492, 19040276, 35821588, 19044372, 34766868, 17989652}};
-
 const uint32_t codesON[3][4] = {
     {35885076, 35883028, 35887124, 34832404},
-    {35754004, 35751956, 35756052, 34701332},
-    {35819540, 35817492, 35821588, 34766868}};
+    {35819540, 35817492, 35821588, 34766868},
+    {35754004, 35751956, 35756052, 34701332}};
 
 const uint32_t codesOFF[3][4] = {
     {19107860, 19105812, 19109908, 18055188},
-    {18976788, 18974740, 18978836, 17924116},
-    {19042324, 19040276, 19044372, 17989652}};
+    {19042324, 19040276, 19044372, 17989652},
+    {18976788, 18974740, 18978836, 17924116}};
 
 uint8_t wSTATUS[3][4];
-char wDESCRIPTION[3][4][15];
+String wNAMES[3][4] = {
+    {"Air Purifier", "Unassigned", "Unassigned", "This Row"},
+    {"Unassigned", "Unassigned", "Unassigned", "This Row"},
+    {"Unassigned", "Front Patio", "Dining Room", "This Row"}};
 
 const char *fileSettings PROGMEM = "/settings.json"; //Settings File
 const char *fileDefaults PROGMEM = "/defaults.json"; //Default Settings File
 const char *fileStatus PROGMEM = "/status.json";     //Settings File
+const char *fileNames PROGMEM = "/names.json";       //Names File
+const char *fileLog PROGMEM = "/log.txt";            //Log File
 const char *boxBasename PROGMEM = "SWITCH_";
 const char *msgTruncated PROGMEM = "Truncated";
 const char *msgFirmware PROGMEM = "Firmware";
@@ -58,38 +58,36 @@ char setWIFI[30] = "rbntx";
 char setPASS[30] = "bekahbekah";
 char setNAME[30] = "Testing";
 char startTIME[21];
-char setTIMEZONE[10] = "CENTRAL";
 
 uint32_t currEPOCH = 0;
 uint16_t currDAY = 0;
 uint8_t currHOUR = 0;
 uint8_t currMINUTE = 0;
 uint8_t currSECOND = 0;
+uint8_t timeTRIALS = 0;
+int8_t setTIMEZONE = 0;
 
 String lastTimeLong;
-String switchRESPONSE;
 
 WiFiUDP ntpUDP;
 AsyncWebServer server(80);
-AsyncWebSocket ws("/ws");
-AsyncEventSource events("/events");
-// OneButton button(GPIO_BUT, true);
-NTPClient timeClient(ntpUDP, "time.google.com");
+NTPClient timeClient(ntpUDP, "192.168.1.16");
 
 RCSwitch mySwitch_tx = RCSwitch();
-// RCSwitch mySwitch_rx = RCSwitch();
+//RCSwitch mySwitch_rx = RCSwitch();
 
 void setup()
 {
-  switchRESPONSE.reserve(30);
   Serial.begin(115200);
   while (!Serial)
     continue;
 
   SPIFFS.begin(true);
 
+  loadStatus();
+
   pinMode(LED_BLUE, OUTPUT);
-  mySwitch_tx.enableTransmit(TX_PIN);
+  // mySwitch_tx.enableTransmit(TX_PIN);
   // mySwitch_tx.setRepeatTransmit(3);
   // mySwitch_rx.enableReceive(RX_PIN);
 
@@ -99,10 +97,14 @@ void setup()
   while (WiFi.status() != WL_CONNECTED)
     delay(500);
 
-  timeClient.setTimeOffset(setTZOffset(setTIMEZONE));
+  timeClient.setTimeOffset(setTZ(-5));
   timeClient.begin();
-  while (timeClient.forceUpdate() != true)
+
+  while ((timeClient.forceUpdate() != true) && (timeTRIALS < 5))
+  {
+    timeTRIALS++;
     delay(500);
+  }
 
   strcpy(boxID, boxBasename);
   strncat(boxID, setNAME, 33);
@@ -115,12 +117,10 @@ void setup()
   serverStuff();
 
   timeUpdate();
-
   strncpy(startTIME, lastTimeLong.c_str(), lastTimeLong.length());
-
-  saveSettings();
-  Serial.println(String(boxID) + Space + String(startTIME));
-  //ledBlueOff();
+  //saveSettings();
+  //saveStatus();
+  //saveNames();
 }
 
 void loop()
@@ -141,14 +141,6 @@ void ArduinoOTAStuff(void)
     // Clean SPIFFS
     SPIFFS.end();
 
-    // Disable client connections
-    ws.enable(false);
-
-    // Advertise connected clients what's going on
-    ws.textAll("OTA Update Started");
-
-    // Close them
-    ws.closeAll();
     String type;
     if (ArduinoOTA.getCommand() == U_FLASH)
       type = "sketch";
@@ -159,37 +151,16 @@ void ArduinoOTAStuff(void)
   ArduinoOTA.begin();
 }
 
-void onRequest(AsyncWebServerRequest *request)
-{
-  //Handle Unknown Request
-  request->send(404);
-}
-
-void onBody(AsyncWebServerRequest *request, uint8_t *data, size_t len, size_t index, size_t total)
-{
-  //Handle body
-}
-
-void onUpload(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final)
-{
-  //Handle upload
-}
-
-void onEvent(AsyncWebSocket *server, AsyncWebSocketClient *client, AwsEventType type, void *arg, uint8_t *data, size_t len)
-{
-  //Handle WebSocket event
-}
-
 //Files
 void appendOutput(const char *sFile, const String &sStuff)
 {
   File f = SPIFFS.open(sFile, "a");
-  if (f.size() > 512)
-  {
-    f.close();
-    f = SPIFFS.open(sFile, "w");
-    f.println(msgTruncated);
-  }
+  // if (f.size() > 512)
+  // {
+  //   f.close();
+  //   f = SPIFFS.open(sFile, "w");
+  //   f.println(msgTruncated);
+  // }
   f.println(sStuff);
   f.close();
 }
@@ -203,91 +174,48 @@ void replaceOutput(const String &sFile, const String &sStuff)
 
 void serverStuff(void)
 {
-  // attach AsyncWebSocket
-  ws.onEvent(onEvent);
-  server.addHandler(&ws);
-
-  // attach AsyncEventSource
-  server.addHandler(&events);
-
   // respond to GET requests on URL /heap
   server.on("/heap", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->send(200, "text/plain", String(ESP.getFreeHeap()));
   });
 
-  // upload a file to /upload
-  server.on("/upload", HTTP_POST, [](AsyncWebServerRequest *request) {
-    request->send(200);
-  },onUpload);
-
-  // attach filesystem root at URL /fs
-  server.serveStatic("/fs", SPIFFS, "/");
-
-  // Catch-All Handlers
-  // Any request that can not find a Handler that canHandle it
-  // ends in the callbacks below.
-  server.onNotFound(onRequest);
-  server.onFileUpload(onUpload);
-  server.onRequestBody(onBody);
-
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html);
-    request->send(response);
-    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html, sizeof(index_html));
-    // response->addHeader("Content-Encoding", "gzip");
+    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html);
     // request->send(response);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html_gz, sizeof(index_html_gz));
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
   });
 
   server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->redirect("/");
   });
 
-  // server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
-  //   AsyncWebServerResponse *response = request->beginResponse_P(200, "image/x-icon", favicon_ico, sizeof(favicon_ico));
-  //   response->addHeader("Content-Encoding", "gzip");
-  //   request->send(response);
-  // });
-
-  // server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
-  //   // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html);
-  //   // request->send(response);
-  //   AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html_gz, sizeof(settings_html_gz));
-  //   response->addHeader("Content-Encoding", "gzip");
-  //   request->send(response);
-  // });
-
-  // server.on("/settings.html", HTTP_GET, [](AsyncWebServerRequest *request) {
-  //   request->redirect("/settings");
-  // });
-
-  server.on("/defaults.json", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/defaults.json", "application/json");
+  server.on("/favicon.ico", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "image/x-icon", favicon_ico_gz, sizeof(favicon_ico_gz));
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
   });
 
-  server.on("/settings.json", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(SPIFFS, "/settings.json", "application/json");
-  });
+  server.serveStatic("/defaults.json", SPIFFS, "/defaults.json");
+  server.serveStatic("/settings.json", SPIFFS, "/settings.json");
+  server.serveStatic("/status.json", SPIFFS, "/status.json");
+  server.serveStatic("/names.json", SPIFFS, "/names.json");
+  server.serveStatic("/SWITCHSTATUS", SPIFFS, "/status.json");
+  server.serveStatic("/SWITCHNAMES", SPIFFS, "/names.json");
+  server.serveStatic("/log.txt", SPIFFS, "/log.txt");
 
   server.on("/RESTART", HTTP_GET, [](AsyncWebServerRequest *request) {
-    request->send(200, "text/plain", "Restarting...");
+    request->send(200);
     restartSwitch();
   });
 
   server.on("/switchu", HTTP_GET, [](AsyncWebServerRequest *request) {
-    int params = request->params();
-    if (params == 3)
-    {
-      AsyncWebParameter *p = request->getParam(0);
-      // Serial.printf("HEADER[%s]: %s\n", p1->name().c_str(), p1->value().c_str());
-      uint8_t rCHANNEL = p->value().toInt();
-      p = request->getParam(1);
-      // Serial.printf("HEADER[%s]: %s\n", p2->name().c_str(), p2->value().c_str());
-      uint8_t rINDEX = p->value().toInt();
-      p = request->getParam(2);
-      // Serial.printf("HEADER[%s]: %s\n", p3->name().c_str(), p3->value().c_str());
-      bool rSTATUS = p->value().toInt();
-      processSwitchUni(rCHANNEL, rINDEX, rSTATUS);
-    }
+    AsyncWebParameter *p = request->getParam(0);
+    String sPARAM = p->value();
+    processSwitchUni(sPARAM);
+    saveStatus();
+    request->send(200);
     request->redirect("/");
   });
 
@@ -298,18 +226,6 @@ void serverStuff(void)
     String sVERSION = String(VERSION) + Space + startTIME;
     root["title"] = setNAME;
     root["version"] = sVERSION;
-    root["lastTimeLong"] = lastTimeLong;
-    root["status"] = wSTATUS;
-    root["description"] = wDESCRIPTION;
-    response->setLength();
-    request->send(response);
-  });
-
-  server.on("/JSONUPDATE", HTTP_GET, [](AsyncWebServerRequest *request) {
-    AsyncJsonResponse *response = new AsyncJsonResponse();
-    response->addHeader("Server", "ESP Async Web Server");
-    JsonObject &root = response->getRoot();
-    root["lastTimeLong"] = lastTimeLong;
     response->setLength();
     request->send(response);
   });
@@ -321,21 +237,41 @@ void serverStuff(void)
     root["wifi"] = setWIFI;
     root["pass"] = setPASS;
     root["name"] = setNAME;
-    root["status"] = wSTATUS;
-    root["description"] = wDESCRIPTION;
     response->setLength();
     request->send(response);
   });
 
-  server.onNotFound([](AsyncWebServerRequest *request) {
-    if (request->method() == HTTP_OPTIONS)
-    {
-      request->send(200);
-    }
-    else
-    {
-      request->send(404);
-    }
+  // server.on("/SAVESETTINGS", HTTP_GET, [](AsyncWebServerRequest *request) {
+  //   request->send(200);
+  //   saveStatus();
+  // });
+
+   server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html_gz, sizeof(settings_html_gz));
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
+    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html);
+    // request->send(response);
+  });
+
+  AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/SAVESETTINGS", [](AsyncWebServerRequest *request, JsonVariant &json) {
+    JsonObject &root = json.as<JsonObject>();
+    root.prettyPrintTo(Serial);
+    File f = SPIFFS.open(fileNames, "w");
+    root.prettyPrintTo(f);
+    f.close();
+    request->send(200, "text/plain", "Saved & Restarting");
+    delay(1000);
+    restartSwitch();
+  });
+  server.addHandler(handler);
+
+    server.on("/redirect", HTTP_GET, [](AsyncWebServerRequest *request) {
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", redirect_html_gz, sizeof(redirect_html_gz));
+    response->addHeader("Content-Encoding", "gzip");
+    request->send(response);
+    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html);
+    // request->send(response);
   });
 
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
@@ -396,21 +332,15 @@ void makeTimeLong(void)
   lastTimeLong = String(ntp_year) + "/" + strMonth + "/" + strDay + "_" + strHour + ":" + strMinute + ":" + strSecond + cAMPM;
 }
 
-int16_t setTZOffset(const char *tTZ)
+int16_t setTZ(int8_t offSET)
 {
-  uint16_t rTZ = 14400;
-  if (strcmp(tTZ, "CENTRAL") == 0)
-    rTZ += SECSINHOUR;
-  else if (strcmp(tTZ, "MOUNTAIN") == 0)
-    rTZ += (2 * SECSINHOUR);
-  else if (strcmp(tTZ, "PACIFIC") == 0)
-    rTZ += (3 * SECSINHOUR);
-  return -rTZ;
+  uint16_t rTZ = 3600 * offSET;
+  return rTZ;
 }
 
 void loadSettings()
 {
-  StaticJsonBuffer<500> jsonBuffer;
+  StaticJsonBuffer<300> jsonBuffer;
   File f = SPIFFS.open(fileSettings, "r");
   if (!f)
   {
@@ -426,23 +356,84 @@ void loadSettings()
     strncpy(setWIFI, root["wifi"], sizeof(setWIFI));
     strncpy(setPASS, root["pass"], sizeof(setPASS));
     strncpy(setNAME, root["name"], sizeof(setNAME));
-    strncpy(setTIMEZONE, root["zone"], sizeof(setTIMEZONE));
+    // setTIMEZONE, root["zone"];
+    setTIMEZONE = -5;
   }
   jsonBuffer.clear();
 }
 
 void saveSettings(void)
 {
-  StaticJsonBuffer<500> jsonBuffer;
+  StaticJsonBuffer<300> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
   root["wifi"] = setWIFI;
   root["pass"] = setPASS;
   root["name"] = setNAME;
   root["zone"] = setTIMEZONE;
   File f = SPIFFS.open(fileSettings, "w");
-  root.printTo(f);
+  root.prettyPrintTo(f);
   f.close();
   jsonBuffer.clear();
+}
+
+void saveStatus(void)
+{
+  uint8_t idCHANNEL = 65;
+  StaticJsonBuffer<300> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  for (int i = 0; i < 3; i++)
+  {
+    for (int p = 0; p < 4; p++)
+      root[char(idCHANNEL) + String(p)] = wSTATUS[i][p];
+    idCHANNEL++;
+  }
+  File f = SPIFFS.open(fileStatus, "w");
+  root.prettyPrintTo(f);
+  f.close();
+  jsonBuffer.clear();
+}
+
+void saveNames(void)
+{
+  uint8_t idCHANNEL = 65;
+  StaticJsonBuffer<400> jsonBuffer;
+  JsonObject &root = jsonBuffer.createObject();
+  for (int i = 0; i < 3; i++)
+  {
+    for (int p = 0; p < 4; p++)
+      root[char(idCHANNEL) + String(p)] = wNAMES[i][p];
+    idCHANNEL++;
+  }
+  File f = SPIFFS.open(fileNames, "w");
+  root.prettyPrintTo(f);
+  f.close();
+  jsonBuffer.clear();
+}
+
+void loadStatus(void)
+{
+  StaticJsonBuffer<300> jsonBuffer;
+  char idCHANNEL = 'A';
+  File f = SPIFFS.open(fileStatus, "r");
+  if (f)
+  {
+    size_t size = f.size();
+    std::unique_ptr<char[]> buf(new char[size]);
+    f.readBytes(buf.get(), size);
+    f.close();
+    JsonObject &root = jsonBuffer.parseObject(buf.get());
+    for (int i = 0; i < 3; i++)
+      for (int p = 0; p < 4; p++)
+      {
+        if (i == 1)
+          idCHANNEL = 'B';
+        else if (i == 2)
+          idCHANNEL = 'C';
+        wSTATUS[i][p] = root[String(idCHANNEL) + String(p)];
+      }
+    f.close();
+    jsonBuffer.clear();
+  }
 }
 
 void timeUpdate(void)
@@ -457,7 +448,6 @@ void timeUpdate(void)
     currMINUTE = currEPOCH % SECSINDAY % SECSINHOUR / SECSINMIN;
     lastSEC = currSECOND;
     makeTimeLong();
-    //Serial.println(String(boxID) + Space + lastTimeLong);
   }
 }
 
@@ -466,24 +456,28 @@ void restartSwitch(void)
   ESP.restart();
 }
 
-void turnOn(uint8_t idCHANNEL, uint8_t idINDEX)
+void processSwitchUni(String sPARAM)
 {
-  mySwitch_tx.send(codesON[idCHANNEL][idINDEX], LENGTH);
-  wSTATUS[idCHANNEL][idINDEX] = !wSTATUS[idCHANNEL][idINDEX];
-  delay(100);
-}
-
-void turnOff(uint8_t idCHANNEL, uint8_t idINDEX)
-{
-  mySwitch_tx.send(codesOFF[idCHANNEL][idINDEX], LENGTH);
-  wSTATUS[idCHANNEL][idINDEX] = !wSTATUS[idCHANNEL][idINDEX];
-  delay(100);
-}
-
-void processSwitchUni(uint8_t channel, uint8_t index, bool state)
-{
-  if (state)
-    turnOn(channel, index);
+  uint8_t idCHANNEL, idINDEX, idSTATUS;
+  mySwitch_tx.enableTransmit(TX_PIN);
+  idCHANNEL = sPARAM.charAt(0) - 'A';
+  idINDEX = sPARAM.charAt(1) - '0';
+  idSTATUS = sPARAM.charAt(2) - '0';
+  if (idSTATUS == 1)
+  {
+    if (idINDEX == 3)
+      for (int tINDEX = 0; tINDEX < 3; tINDEX++)
+        wSTATUS[idCHANNEL][tINDEX] = idSTATUS;
+    mySwitch_tx.send(codesON[idCHANNEL][idINDEX], LENGTH);
+    wSTATUS[idCHANNEL][idINDEX] = idSTATUS;
+  }
   else
-    turnOff(channel, index);
+  {
+    if (idINDEX == 3)
+      for (int tINDEX = 0; tINDEX < 3; tINDEX++)
+        wSTATUS[idCHANNEL][tINDEX] = idSTATUS;
+    mySwitch_tx.send(codesOFF[idCHANNEL][idINDEX], LENGTH);
+    wSTATUS[idCHANNEL][idINDEX] = idSTATUS;
+  }
+  mySwitch_tx.disableTransmit();
 }
