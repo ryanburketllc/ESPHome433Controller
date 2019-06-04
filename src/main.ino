@@ -214,7 +214,6 @@ void serverStuff(void)
     AsyncWebParameter *p = request->getParam(0);
     String sPARAM = p->value();
     processSwitchUni(sPARAM);
-    saveStatus();
     request->send(200);
     request->redirect("/");
   });
@@ -246,12 +245,16 @@ void serverStuff(void)
   //   saveStatus();
   // });
 
-   server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
     AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html_gz, sizeof(settings_html_gz));
     response->addHeader("Content-Encoding", "gzip");
     request->send(response);
     // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html);
     // request->send(response);
+  });
+
+    server.on("/SETTINGS", HTTP_GET, [](AsyncWebServerRequest *request) {
+    request->redirect("/settings");
   });
 
   AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/SAVESETTINGS", [](AsyncWebServerRequest *request, JsonVariant &json) {
@@ -266,7 +269,7 @@ void serverStuff(void)
   });
   server.addHandler(handler);
 
-    server.on("/redirect", HTTP_GET, [](AsyncWebServerRequest *request) {
+  server.on("/redirect", HTTP_GET, [](AsyncWebServerRequest *request) {
     AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", redirect_html_gz, sizeof(redirect_html_gz));
     response->addHeader("Content-Encoding", "gzip");
     request->send(response);
@@ -274,7 +277,14 @@ void serverStuff(void)
     // request->send(response);
   });
 
+  server.onNotFound([](AsyncWebServerRequest *request) {
+    if (request->method() == HTTP_OPTIONS) request->send(200);
+    else request->send(404);
+  });
+
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  DefaultHeaders::Instance().addHeader("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS");
 
   server.begin();
 }
@@ -480,4 +490,5 @@ void processSwitchUni(String sPARAM)
     wSTATUS[idCHANNEL][idINDEX] = idSTATUS;
   }
   mySwitch_tx.disableTransmit();
+  saveStatus();
 }

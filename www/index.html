@@ -1,161 +1,114 @@
 <!DOCTYPE html>
-<html lang=en-US>
+<html lang="en-US">
 
 <head>
 	<title>Switch</title>
-	<meta charset=UTF-8>
-	<meta name=viewport content="width=device-width, initial-scale=1">
-	<link rel=stylesheet href=https://www.w3schools.com/w3css/4/w3.css> <link rel=stylesheet
-		href=https://www.w3schools.com/lib/w3-theme-black.css> <link
-		href="https://fonts.googleapis.com/css?family=Roboto:100" rel=stylesheet type=text/css> <link
-		href="https://fonts.googleapis.com/css?family=Roboto+Mono:100" rel=stylesheet type=text/css> <link
-		href=favicon.ico rel=icon type=image/x-icon />
-	<script src="https://code.jquery.com/jquery-3.4.1.min.js" integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo=" crossorigin=anonymous></script>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link href="https://www.w3schools.com/w3css/4/w3.css" rel="stylesheet">
+	<link href="https://www.w3schools.com/lib/w3-theme-black.css" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css?family=Roboto:100" rel="stylesheet">
+	<link href="favicon.ico" rel="icon" type="image/x-icon">
+	<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 	<script>
-		$(document).ready(function () {
-			getStartData();
-			getSwitchStatus();
-			getSwitchNames();
+		getStartData();
+		makeButtons();
+		getSwitchStatus();
 
-			$(".w3-bar-item").click(function () {
-				var b = $(this).attr("id");
-				var a;
-				if ($(this).hasClass("w3-green")) {
-					a = 0;
-					$(this).removeClass("w3-green");
-					$(this).addClass("w3-red")
-				} else if ($(this).hasClass("w3-red")) {
-					a = 1;
-					$(this).removeClass("w3-red");
-					$(this).addClass("w3-green")
-				}
-				jQuery.get("/switchu?c=" + b + a)
-				setTimeout(function () { getSwitchStatus(); }, 5000);
-			})
-
-			$("#btnClear").click(function () {
-				$('#TextFileOutput').empty();
-				$('#extraDetails').hide();
+		function makeButtons() {
+			$.get("/names.json", function (data) {
+				var items = [];
+				$.each(data, function (index, value) {
+					items.push('<button id="' + index + '" class="w3-bar-item w3-quarter" style="text-align: center; width:25%;">' + value + '</button>');
+				});
+				items.push('<div class="w3-section w3-center"><button id="_save" type=submit class="w3-button w3-round-xlarge w3-padding-small"></button></div>');
+				items.join("");
+				$('#btnWALL').append(items);
 			});
-
-			$("#btnSettings").click(function () {
-				window.location.href = '/settings';
-			});
-
-			$("#btnRestart").click(function () {
-				$.get("/RESTART");
-			});
-		});
+		}
 
 		function getStartData() {
-			$.getJSON("/JSONSTART", function (data) {
-				$.each(data, function (key, val) {
-					$('#' + key).html(val);
-				})
-			})
-		};
+			$.get("/JSONSTART", function (data) {
+				$.each(data, function (index, value) {
+					$('#' + index).html(value);
+				});
+			});
+		}
 
 		function getSwitchStatus() {
-			$.getJSON("/SWITCHSTATUS", function (data) {
+			$.get("/SWITCHSTATUS", function (data) {
 				$(".w3-bar-item").each(function () {
-					var e = $(this).attr("id");
-					if (data[e] == 1) {
-						$("#" + e).removeClass("w3-red");
-						$("#" + e).addClass("w3-green");
+					var index = $(this).attr("id");
+					if (data[index] == 1) {
+						$("#" + index).removeClass("w3-red");
+						$("#" + index).addClass("w3-green");
 					}
-					else $("#" + e).addClass("w3-red");
-				})
-			})
-		};
-
-		function getSwitchNames() {
-			$.getJSON("/names.json", function (data) {
-				$(".w3-bar-item").each(function () {
-					var e = $(this).attr("id");
-					$("#" + e).val(data[e]);
-				})
-			})
-		};
+					else $("#" + index).addClass("w3-red");
+				});
+				$(".w3-bar-item").click(function () {
+					var b = $(this).attr("id");
+					var a;
+					if ($(this).hasClass("w3-green")) {
+						a = 0;
+						$(this).removeClass("w3-green");
+						$(this).addClass("w3-red");
+					} else if ($(this).hasClass("w3-red")) {
+						a = 1;
+						$(this).removeClass("w3-red");
+						$(this).addClass("w3-green");
+					}
+					$.get("/switchu?c=" + b + a);
+					// setTimeout(function () { getSwitchStatus(); }, 5000);
+				});
+			});
+		}
 
 		function populatePre(a) {
 			var b = new XMLHttpRequest();
 			b.onreadystatechange = function () {
 				if (this.readyState == 4 && this.status == 200) {
-					document.getElementById("SwitchResponse").textContent = this.responseText
+					document.getElementById("SwitchResponse").textContent = this.responseText;
 				}
 			};
 			b.open("GET", a, true);
-			b.send()
+			b.send();
 		}
 	</script>
 	<style>
 		body,
-		a,
 		button,
 		pre,
-		h1,
-		h2,
-		h3,
-		h4,
-		h5,
-		h6 {
+		h1 {
 			font-family: "Roboto", sans-serif;
 			margin: 0;
 			padding: 0
 		}
 
-		body,
-		html {
-			height: 100%;
-			width: 100%
-		}
-
-		hr,
-		.div {
-			margin: 1vh;
-			padding: 0vh
-		}
-
 		.w3-bar-item {
 			height: 15vmax;
+		}
+
+		.content {
+			margin: auto;
 		}
 	</style>
 </head>
 
-<body class="w3-theme-dark w3-mobile" style="min-width:25%">
-	<div>
-		<div class="w3-center">
-			<h1><b><span id="title">BoxID</span></b></h1>
-		</div>
+<body class="content w3-theme-dark w3-mobile">
+	<div style="text-align: center">
+		<h1><span id="title">BoxID</span></h1>
 	</div>
-	<div>
-		<div class="w3-block w3-padding-small" id="btnWALL">
-			<input type="button" id="A0" class="w3-bar-item w3-padding-small w3-quarter"
-				style="width:25%; white-space: normal;">
-			<input type="button" id="A1" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="A2" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="A3" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="B0" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="B1" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="B2" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="B3" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="C0" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="C1" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="C2" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-			<input type="button" id="C3" class="w3-bar-item w3-padding-small w3-quarter" style="width:25%">
-		</div>
-	</div>
-	<div class="w3-center w3-padding-small">
+	<hr class="w3-border-grey">
+	<div class="w3-padding-small w3-block" id="btnWALL"></div>
+	<hr class="w3-border-grey">
+	<div class="w3-section w3-center">
 		<div>
-			<button id="btnClear" class="w3-button w3-round-xlarge w3-padding-small">Clear</button>
-			<button id="btnSettings" class="w3-button w3-round-xlarge w3-padding-small">Settings</button>
-			<button id="btnRestart" class="w3-button w3-round-xlarge w3-padding-small">Restart</button>
+			<a id="btnSettings" href="/SETTINGS"
+				class="w3-button w3-round-xlarge w3-padding-small">Settings</a>
+			<a id="btnRestart" href="/RESTART"
+				class="w3-button w3-round-xlarge w3-padding-small">Restart</a>
 		</div>
-		<div> <span id="version">Version</span>
-		</div>
-		<div>
-			<pre id="SwitchResponse"></pre>
-		</div>
+		<span id="version">Version</span>
 	</div>
 </body>
 
