@@ -98,9 +98,6 @@ void setup()
 
   timeUpdate();
   strncpy(startTIME, lastTimeLong.c_str(), lastTimeLong.length());
-  //saveSettings();
-  //saveStatus();
-  //saveNames();
 }
 
 void loop()
@@ -145,11 +142,11 @@ void serverStuff(void)
   });
 
   server.on("/", HTTP_GET, [](AsyncWebServerRequest *request) {
-    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html);
-    // request->send(response);
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html_gz, sizeof(index_html_gz));
-    response->addHeader("Content-Encoding", "gzip");
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html);
     request->send(response);
+    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", index_html_gz, sizeof(index_html_gz));
+    // response->addHeader("Content-Encoding", "gzip");
+    // request->send(response);
   });
 
   server.on("/index.html", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -170,23 +167,6 @@ void serverStuff(void)
     restartSwitch();
   });
 
-  AsyncCallbackJsonWebHandler *layoutHandler = new AsyncCallbackJsonWebHandler("/SAVESETTINGS", [](AsyncWebServerRequest *request, JsonVariant &json) {
-    JsonObject &jsonObj = json.as<JsonObject>();
-    if ((jsonObj.size() > 0) && (jsonObj.success()))
-    {
-      jsonObj.prettyPrintTo(Serial);
-      //File f = SPIFFS.open(fileNames, "w");
-      //jsonObj.prettyPrintTo(f);
-      //f.close();
-      request->send(200, "text/plain", "Settings Saved & Restarting...");
-      delay(1000);
-      restartSwitch();
-    }
-    else
-      request->send(200, "text/plain", "Error");
-  });
-  server.addHandler(layoutHandler);
-
   server.on("/FLIPSWITCH", HTTP_GET, [](AsyncWebServerRequest *request) {
     AsyncWebParameter *p = request->getParam(0);
     String txID = p->value();
@@ -205,35 +185,74 @@ void serverStuff(void)
   });
 
   server.on("/settings", HTTP_GET, [](AsyncWebServerRequest *request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html_gz, sizeof(settings_html_gz));
-    response->addHeader("Content-Encoding", "gzip");
-    request->send(response);
-    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html);
+    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html_gz, sizeof(settings_html_gz));
+    // response->addHeader("Content-Encoding", "gzip");
     // request->send(response);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html);
+    request->send(response);
   });
 
   server.on("/SETTINGS", HTTP_GET, [](AsyncWebServerRequest *request) {
     request->redirect("/settings");
   });
 
-  // AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/SAVESETTINGS", [](AsyncWebServerRequest *request, JsonVariant &json) {
-  //   JsonObject &root = json.as<JsonObject>();
-  //   root.prettyPrintTo(Serial);
-  //   File f = SPIFFS.open(fileNames, "w");
-  //   root.prettyPrintTo(f);
-  //   f.close();
-  //   request->send(200, "text/plain", "Saved & Restarting");
-  //   delay(1000);
-  //   restartSwitch();
-  // });
-  // server.addHandler(handler);
+  AsyncCallbackJsonWebHandler *handler = new AsyncCallbackJsonWebHandler("/SAVESETTINGS", [](AsyncWebServerRequest *request, JsonVariant &json) {
+    JsonObject &incoming = json.as<JsonObject>();
+    if (incoming.success())
+    {
+      StaticJsonBuffer<3000> jsonBuffer;
+      File f = SPIFFS.open(fileSettings, "r");
+      JsonObject &root = jsonBuffer.parseObject(f);
+      String tmpID;
+      f.close();
+      if (root.success())
+      {
+        root["settings"]["wifi"] = incoming["wifi"];
+        root["settings"]["pass"] = incoming["pass"];
+        root["settings"]["name"] = incoming["name"];
+        root["settings"]["zone"] = incoming["zone"];
+        for (int i = 1; i <= 12; i++)
+        {
+          JsonArray &switches = root["switches"];
+          JsonObject &oneSWITCH = switches[i - 1];
+          // Serial.println("Before");
+          // Serial.println(oneSWITCH["name"].as<String>());
+          // oneSWITCH.prettyPrintTo(Serial);
+          // if (oneSWITCH["id"] == "A1")
+          // {
+          if (i <= 4)
+          {
+            tmpID = "A";
+            tmpID += String(i);
+          }
+          else if (i <= 8)
+          {
+            tmpID = "B";
+            tmpID += String(i - 4);
+          }
+          else if (i <= 12)
+          {
+            tmpID = "C";
+            tmpID += String(i - 8);
+          }
+          oneSWITCH["name"] = incoming[tmpID];
+        }
+        File f = SPIFFS.open(fileSettings, "w");
+        root.prettyPrintTo(f);
+        f.close();
+        jsonBuffer.clear();
+      }
+      request->send(200, "text/plain", "Settings Saved");
+    }
+  });
+  server.addHandler(handler);
 
   server.on("/redirect", HTTP_GET, [](AsyncWebServerRequest *request) {
-    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", redirect_html_gz, sizeof(redirect_html_gz));
-    response->addHeader("Content-Encoding", "gzip");
-    request->send(response);
-    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html);
+    // AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", redirect_html_gz, sizeof(redirect_html_gz));
+    // response->addHeader("Content-Encoding", "gzip");
     // request->send(response);
+    AsyncWebServerResponse *response = request->beginResponse_P(200, "text/html", settings_html);
+    request->send(response);
   });
 
   server.onNotFound([](AsyncWebServerRequest *request) {
@@ -332,31 +351,31 @@ void loadSettings()
   jsonBuffer.clear();
 }
 
-void saveSettings(void)
-{
-  StaticJsonBuffer<3000> jsonBuffer;
-  File f = SPIFFS.open(fileSettings, "r");
-  if (!f)
-  {
-    f = SPIFFS.open(fileDefaults, "r");
-  }
-  else
-  {
-    JsonObject &root = jsonBuffer.parseObject(f);
-    f.close();
-    if (root.success())
-    {
-      root["settings"]["wifi"] = setWIFI;
-      root["settings"]["pass"] = setPASS;
-      root["settings"]["name"] = setNAME;
-      root["settings"]["zone"] = setTIMEZONE;
-      f = SPIFFS.open(fileSettings, "w");
-      root.prettyPrintTo(f);
-      f.close();
-    }
-  }
-  jsonBuffer.clear();
-}
+// void saveSettings(void)
+// {
+//   StaticJsonBuffer<3000> jsonBuffer;
+//   File f = SPIFFS.open(fileSettings, "r");
+//   if (!f)
+//   {
+//     f = SPIFFS.open(fileDefaults, "r");
+//   }
+//   else
+//   {
+//     JsonObject &root = jsonBuffer.parseObject(f);
+//     f.close();
+//     if (root.success())
+//     {
+//       root["settings"]["wifi"] = setWIFI;
+//       root["settings"]["pass"] = setPASS;
+//       root["settings"]["name"] = setNAME;
+//       root["settings"]["zone"] = setTIMEZONE;
+//       f = SPIFFS.open(fileSettings, "w");
+//       root.prettyPrintTo(f);
+//       f.close();
+//     }
+//   }
+//   jsonBuffer.clear();
+// }
 
 void updateSettings(String &txID)
 {
@@ -366,6 +385,7 @@ void updateSettings(String &txID)
   f.close();
   if (root.success())
   {
+    JsonArray &switches = root["switches"];
     int i = 0;
     if (txID.charAt(0) == 'B')
       i += 4;
@@ -373,15 +393,31 @@ void updateSettings(String &txID)
       i += 8;
     i += (txID.charAt(1) - '0');
     i -= 1;
-    if (root["switches"][i]["status"] == 0)
-      root["switches"][i]["status"] = 1;
+    if ((i > 0) && ((i + 1) % 4 == 0))
+    {
+      uint8_t status = 0;
+      // switches[i].prettyPrintTo(Serial);
+      if (switches[i]["status"] == 0)
+        status++;
+        switches[i]["status"] = status;
+      for (int p = 1; p < 4; p++)
+      {
+        // switches[i - p].prettyPrintTo(Serial);
+        switches[i - p]["status"] = status;
+      }
+    }
     else
-      root["switches"][i]["status"] = 0;
-    File f = SPIFFS.open(fileSettings, "w");
-    root.prettyPrintTo(f);
-    f.close();
-    jsonBuffer.clear();
+    {
+      if (switches[i]["status"] == 0)
+        switches[i]["status"] = 1;
+      else
+        switches[i]["status"] = 0;
+    }
   }
+  f = SPIFFS.open(fileSettings, "w");
+  root.prettyPrintTo(f);
+  f.close();
+  jsonBuffer.clear();
 }
 
 void timeUpdate(void)

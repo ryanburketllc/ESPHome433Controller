@@ -45,6 +45,7 @@
 				}
 				$.get(urlTESTING + "/FLIPSWITCH?id=" + txID + "&c=" + txCODE, function (response) {
 					$('#Response').text(response);
+					setTimeout(function () { window.location.href = urlTESTING + "/"; }, 2000);
 				});
 			});
 			// // setTimeout(function () { getSwitchStatus(); }, 5000);
@@ -70,7 +71,7 @@
 	</style>
 </head>
 
-<body class="content w3-theme-dark w3-mobile">
+<body class="content w3-theme-dark w3-mobile" style="max-width: 75vw; min-width: 400px;">
 	<div style="text-align: center">
 		<h1><span id="title">BoxID</span></h1>
 	</div>

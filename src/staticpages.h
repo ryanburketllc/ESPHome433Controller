@@ -1,5 +1,175 @@
 #include <Arduino.h>
 
+const char settings_html[] = R"=====(
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+    <title>Switch</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://www.w3schools.com/w3css/4/w3.css" rel="stylesheet">
+    <link href="https://www.w3schools.com/lib/w3-theme-black.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100" rel="stylesheet">
+    <link href="favicon.ico" rel="icon" type="image/x-icon">
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script>
+        var urlTESTING = "http://192.168.1.106";
+        var form = "formSettings";
+
+        function makeForm() {
+            $.get(urlTESTING + "/settings.json", function (json) {
+                var jsonSettings = json.settings;
+                var fieldSet = $('<fieldset />');
+                $.each(jsonSettings, function (index, value) {
+                    switch (index) {
+                        case "name":
+                            $('#title').html(value);
+                            var div = $('<div />').addClass("w3-half w3-padding-small");
+                            var label = $('<label />').text("Box Name (Min 8/Max 32)");
+                            var input = $('<input />').attr("id", index).addClass("w3-input").attr('name', index).attr('placeholder', value).attr("value", value).attr('minlength', 8).attr('maxlength', 32).prop('required', true);
+                            input.appendTo(label);
+                            label.appendTo(div);
+                            div.appendTo(fieldSet);
+                            break;
+                        case "wifi":
+                            var div = $('<div />').addClass("w3-half w3-padding-small");
+                            var label = $('<label />').text("WiFi Network (Max 32)");
+                            var input = $('<input />').attr("id", index).addClass("w3-input").attr('name', index).attr('placeholder', value).attr("value", value).attr('maxlength', 32).prop('required', true);
+                            input.appendTo(label);
+                            label.appendTo(div);
+                            div.appendTo(fieldSet);
+                            break;
+                        case "pass":
+                            var div = $('<div />').addClass("w3-half w3-padding-small");
+                            var label = $('<label />').text("WiFi Password (Min 8/Max 32)");
+                            var input = $('<input />').attr("id", index).addClass("w3-input").attr('name', index).attr('placeholder', value).attr("value", value).attr('minlength', 8).attr('maxlength', 32).prop('required', true);
+                            input.appendTo(label);
+                            label.appendTo(div);
+                            div.appendTo(fieldSet);
+                            break;
+                        case "zone":
+                            var div = $('<div />').addClass("w3-half w3-padding-small");
+                            var label = $('<label />').text("Timezone (-GMT)");
+                            var dropdown = $('<select />').attr("id", index).addClass("w3-select").attr('name', index);
+                            for (var p = -12; p <= 12; p++) {
+                                var option = $('<option />').attr('value', p);
+                                if (p == -5) option.text(p + " hours (Default)").attr('selected', true);
+                                else option.text(p + " hours");
+                                option.appendTo(dropdown);
+                            }
+                            dropdown.appendTo(label);
+                            label.appendTo(div);
+                            div.appendTo(fieldSet);
+                            break;
+                        default:
+                            break;
+                    }
+                });
+                fieldSet.appendTo('#' + form);
+                fieldSet = $('<fieldset />');
+                var div = $('<div />').addClass("w3-block");
+                div.appendTo(fieldSet);
+                var jsonSwitches = json.switches;
+                $.each(jsonSwitches, function (index, value) {
+                    var button = $('<input />').attr('id', value.id).addClass('w3-bar-item w3-quarter').attr('name', value.id).attr("value", value.name).attr('style', 'text-align: center; max-width:25%; min-height: 70px; max-height:15vh;');
+                    button.appendTo(fieldSet);
+                });
+                fieldSet.appendTo('#' + form);
+                var div = $('<div />').addClass("w3-section w3-center");
+                var button = $('<button />').attr('form', form).attr('id', "_save").addClass("w3-button w3-round-xlarge w3-padding-small").text("Save Settings");
+                button.appendTo(div);
+                div.appendTo('#' + form);
+            });
+        };
+
+        function ConvertFormToJSON(form) {
+            var array = jQuery(form).serializeArray();
+            var json = {};
+
+            jQuery.each(array, function () {
+                json[this.name] = this.value || '';
+            });
+
+            return json;
+        }
+
+        $(document).ready(function () {
+            makeForm();
+
+            $(document).on("click", '#_save', function (event) {
+                event.preventDefault();
+                var jsonData = ConvertFormToJSON('#' + form);
+                jsonData = JSON.stringify(jsonData);
+                var postSettings = {
+                    "url": urlTESTING + "/SAVESETTINGS",
+                    "method": "POST",
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Accept": "*/*",
+                    },
+                    "processData": false,
+                    "data": jsonData
+                }
+                // console.log(postSettings);
+                $.ajax(postSettings).done(function (response) {
+                    $('#Response').text(response);
+                    setTimeout(function () { window.location.href = urlTESTING + "/"; }, 2000);
+                });
+            });
+        });
+    </script>
+    <style>
+        body,
+        button,
+        pre,
+        h1 {
+            font-family: "Roboto", sans-serif;
+            margin: 0;
+            padding: 0
+        }
+
+        .w3-bar-item {
+            height: 15vmax;
+        }
+
+        .content {
+            margin: auto;
+        }
+
+        fieldset {
+            display: block;
+            margin-left: 0px;
+            margin-right: 0px;
+            padding-top: 0px;
+            padding-bottom: 1em;
+            padding-left: 0px;
+            padding-right: 0px;
+            border: 0px;
+        }
+    </style>
+</head>
+
+<body class="content w3-theme-dark w3-mobile" style="max-width: 75vw; min-width: 400px;">
+    <div style="text-align: center">
+        <h1>Setup Box (<span id="title">BoxID</span>)</h1>
+    </div>
+    <hr class="w3-border-grey">
+    <form id="formSettings" class="w3-padding-small"></form>
+    <hr class="w3-border-grey">
+    <div class="w3-section w3-center">
+        <div>
+            <a id="btnBack" href="/" class="w3-button w3-round-xlarge w3-padding-small">Back</a>
+            <a id="btnRestart" href="/RESTART" class="w3-button w3-round-xlarge w3-padding-small">Restart</a>
+        </div>
+        <!-- <span id="version">Version</span> -->
+        <pre id="Response"></pre>
+    </div>
+</body>
+
+</html>
+)=====";
+
 const char index_html[] = R"=====(
 <!DOCTYPE html>
 <html lang="en-US">
@@ -48,6 +218,7 @@ const char index_html[] = R"=====(
 				}
 				$.get(urlTESTING + "/FLIPSWITCH?id=" + txID + "&c=" + txCODE, function (response) {
 					$('#Response').text(response);
+					setTimeout(function () { window.location.href = urlTESTING + "/"; }, 2000);
 				});
 			});
 			// // setTimeout(function () { getSwitchStatus(); }, 5000);
@@ -73,7 +244,7 @@ const char index_html[] = R"=====(
 	</style>
 </head>
 
-<body class="content w3-theme-dark w3-mobile">
+<body class="content w3-theme-dark w3-mobile" style="max-width: 75vw; min-width: 400px;">
 	<div style="text-align: center">
 		<h1><span id="title">BoxID</span></h1>
 	</div>
