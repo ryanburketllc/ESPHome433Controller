@@ -2,124 +2,116 @@
 <html lang="en-US">
 
 <head>
-    <title>Catbox</title>
+    <title>Switch</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=3.0, minimum-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://www.w3schools.com/w3css/4/w3.css" rel="stylesheet">
     <link href="https://www.w3schools.com/lib/w3-theme-black.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css?family=Roboto:100" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100" rel="stylesheet">
     <link href="favicon.ico" rel="icon" type="image/x-icon">
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script>
+        var urlTESTING = "http://192.168.1.111"
 
-        var urlTESTING = "http://192.168.1.199";
-        var form = "formSettings";
-
-        $(document).ready(function () {
-            formSetup();
-            getStartData();
-        });
-
-        function formSetup() {
-            var inputList = { "input": [{ "name": "wifi", "label": "WiFi Network", "limit": 30 }, { "name": "pass", "label": "WiFi Password", "limit": 30 }, { "name": "name", "label": "Box Name", "limit": 40 }] };
-            $.each(inputList.input, function () {
-                var div = $('<div />').addClass("w3-third");
-                var label = $('<label />').text(this.label);
-                var input = $('<input />').attr("id", this.name).addClass("w3-input").attr('name', this.name).attr('placeholder', this.name);
-                input.appendTo(label);
-                label.appendTo(div);
-                div.appendTo('#' + form);
+        function setupBoxes() {
+            $.get(urlTESTING + "/names.json", function (data) {
+                var items = [];
+                $.each(data, function (index, value) {
+                    items.push('<input id="' + index + '" class="w3-bar-item w3-quarter" style="text-align: center; width:25%;"  name="' + index + '" value="' + value + '">');
+                });
+                items.push('<div class="w3-section w3-center"><button id="_save" type=submit class="w3-button w3-round-xlarge w3-padding-small">Save Settings</button></div>');
+                items.join("");
+                $('#form_settings').append(items);
             });
-            var selectList = { "select": [{ "name": "poo", "label": "Poos before dirty", "unit": "poos", "min": 1, "max": 5, "inc": 1, "def": 2 }, { "name": "pee", "label": "Pees before dirty", "unit": "pees", "min": 1, "max": 10, "inc": 1, "def": 5 }, { "name": "pad", "label": "Replace pad every:", "unit": "uses", "min": 5, "max": 30, "inc": 5, "def": 20 }, { "name": "lit", "label": "Replace litter every:", "unit": "uses", "min": 15, "max": 120, "inc": 15, "def": 60 }, { "name": "box", "label": "Deep clean box every:", "unit": "days", "min": 15, "max": 60, "inc": 15, "def": 30 }, { "name": "peetime", "label": "Max time for a pee:", "unit": "Seconds", "min": 15, "max": 120, "inc": 15, "def": 45 }, { "name": "mintime", "label": "Minimum time to count:", "unit": "Seconds", "min": 5, "max": 30, "inc": 5, "def": 20 }, { "name": "expires", "label": "Time expiration:", "unit": "Seconds", "min": 15, "max": 60, "inc": 5, "def": 15 }, { "name": "zone", "label": "Timezone (in GMT):", "unit": "hours", "min": -12, "max": 12, "inc": 1, "def": -5 }] };
-            $.each(selectList.select, function () {
-                var div = $('<div />').addClass("w3-third w3-padding-small");
-                var label = $('<label />').text(this.label);
-                var dropdown = $('<select />').attr("name", this.name).addClass("w3-select");
-                for (var p = this.min; p <= this.max; p += this.inc) {
-                    var option = $('<option />').attr('value', p);
-                    if (p == this.def) option.text(p + " " + this.unit + " (Default)").attr('selected', true);
-                    else option.text(p + " " + this.unit);
-                    option.appendTo(dropdown);
-                };
-                dropdown.appendTo(label);
-                label.appendTo(div);
-                div.appendTo('#' + form);
-            });
-            var div = $('<div />').addClass("w3-section w3-center");
-            var button = $('<button />').attr('form', form).attr('id', "_save").attr('type', "submit").addClass("w3-button w3-round-xlarge w3-padding-small").text("Save Settings");
-            button.appendTo(div);
-            div.appendTo('#' + form);
-        };
+        }
 
         function getStartData() {
-            $.get(urlTESTING + "/JSONSTART", function (json) {
-                $("#title").text(json.title);
-                $("#version").text(json.version);
-            });
-            $.get(urlTESTING + "/JSONSETTINGS", function (json) {
-                $.each(json, function (key, val) {
-                    if (val != 0)
-                        $("#" + key).val(val);
+            $.get(urlTESTING + "/JSONSTART", function (data) {
+                $.each(data, function (index, value) {
+                    $('#' + index).html(value);
                 });
             });
         }
 
-        $(form).submit(function (event) {
-            var formData = $(this).serializeArray();
-            $.ajax({
-                url: urlTESTING+'/SAVESETTINGS',
-                type: 'post',
-                data: formData,
-                headers: {'Content-Type': 'application/json'},
-                dataType: 'json',
-                success: function (response) {
-                    console.log(response);
+        function populate(frm, data) {
+            $.each(data, function (key, value) {
+                var ctrl = $('[name=' + key + ']', frm);
+                ctrl.val(value);
+            });
+        }
+
+        function getSettings() {
+            $.get(urlTESTING + "/JSONSETTINGS", function (data) {
+                populate("form_settings", data);
+                $.each(data, function (index, value) {
+                    $('#' + index).val(value);
+                });
+            });
+        }
+
+        $(document).ready(function () {
+            getStartData();
+            getSettings();
+            setupBoxes();
+
+            $('#_save').on("click", function (event) {
+                event.preventDefault();
+                if ($('form#' + form)[0].checkValidity()) {
+                    var jsonData = ConvertFormToJSON('form#' + form);
+                    jsonData = JSON.stringify(jsonData);
+                    var postSettings = {
+                        "url": urlTESTING + "/SAVESETTINGS",
+                        "method": "POST",
+                        "headers": {
+                            "Content-Type": "application/json",
+                            "Accept": "*/*",
+                        },
+                        "processData": false,
+                        "data": jsonData
+                    }
+                    // console.log(postSettings);
+                    $.ajax(postSettings).done(function (response) {
+                        if (response == 'Saved') setTimeout(function () { window.location.href = urlTESTING + "/"; }, 2000);
+                        else (alert("Could not be saved. Check log for options."))
+                        console.log(response);
+                    });
                 }
             });
         });
     </script>
     <style>
         body,
-        a,
         button,
         pre,
         h1 {
             font-family: "Roboto", sans-serif;
-            margin: 0px 0px 0px 0px;
-            padding: 0px 0px 0px 0px
+            margin: 0;
+            padding: 0
         }
 
-        body,
-        html {
-            height: 100%;
-            width: 100%
+        .w3-bar-item {
+            height: 15vmax;
         }
 
-        hr,
-        .div {
-            margin: 1vh;
-            padding: 0vh
+        .content {
+            margin: auto;
         }
     </style>
 </head>
 
-<body class="w3-theme-dark" style="min-width: 30%; align-self: auto;">
+<body class="content w3-theme-dark w3-mobile">
     <div style="text-align: center">
-        <h1><b>Setup Box (<span id="title">BoxID</span>)</b></h1>
+        <h1>Setup Box (<span id="title">BoxID</span>)</h1>
     </div>
     <hr class="w3-border-grey">
-    <form id="formSettings" class="w3-row-padding"></form>
+    <form action="javascript:postData()" id="form_settings" method="get" class="w3-padding-small w3-block"></form>
     <hr class="w3-border-grey">
     <div class="w3-section w3-center">
         <div>
             <a id="btnBack" href="/" class="w3-button w3-round-xlarge w3-padding-small">Back</a>
-            <a id="btnRecalibrate" href="/RECALIBRATE" class="w3-button w3-round-xlarge w3-padding-small">Recalibrate
-                Sensor</a>
             <a id="btnRestart" href="/RESTART" class="w3-button w3-round-xlarge w3-padding-small">Restart</a>
         </div>
-        <div>
-            <span id="version">Version</span>
-        </div>
+        <span id="version">Version</span>
     </div>
 </body>
 

@@ -1,0 +1,113 @@
+{
+    "settings": {
+        "isSetUp": 1,
+        "wifi": "rbntx",
+        "pass": "bekahbekah",
+        "name": "Testing",
+        "zone": "-5"
+    },
+    "switches": [
+        {
+            "id": "A1",
+            "on": 35885076,
+            "off": 19107860,
+            "name": "Air Purifier",
+            "status": 1,
+            "timers": 0
+        },
+        {
+            "id": "A2",
+            "on": 35883028,
+            "off": 19105812,
+            "name": "Unassigned",
+            "status": 0,
+            "timers": 0
+        },
+        {
+            "id": "A3",
+            "on": 35887124,
+            "off": 19109908,
+            "name": "Unassigned",
+            "status": 0,
+            "timers": 0
+        },
+        {
+            "id": "A4",
+            "on": 34832404,
+            "off": 18055188,
+            "name": "This Row",
+            "status": 0,
+            "timers": 0
+        },
+        {
+            "id": "B1",
+            "on": 35819540,
+            "off": 19042324,
+            "name": "Unassigned",
+            "status": 0,
+            "timers": 0
+        },
+        {
+            "id": "B2",
+            "on": 35817492,
+            "off": 19040276,
+            "name": "Unassigned",
+            "status": 0,
+            "timers": 0
+        },
+        {
+            "id": "B3",
+            "on": 35821588,
+            "off": 19044372,
+            "name": "Unassigned",
+            "status": 0,
+            "timers": 0
+        },
+        {
+            "id": "B4",
+            "on": 34766868,
+            "off": 17989652,
+            "name": "This Row",
+            "status": 0,
+            "timers": 0
+        },
+        {
+            "id": "C1",
+            "on": 35754004,
+            "off": 18976788,
+            "name": "Unassigned",
+            "status": 0,
+            "timers": 0
+        },
+        {
+            "id": "C2",
+            "on": 35751956,
+            "off": 18974740,
+            "name": "Front Patio",
+            "status": 0,
+            "timers": [
+                {
+                    "timeon": "21:00",
+                    "timeoff": "6:00",
+                    "days": "0,1,2,3,4,5,6"
+                }
+            ]
+        },
+        {
+            "id": "C3",
+            "on": 35756052,
+            "off": 18978836,
+            "name": "Dinner Table",
+            "status": 1,
+            "timers": 0
+        },
+        {
+            "id": "C4",
+            "on": 34701332,
+            "off": 17924116,
+            "name": "This Row",
+            "status": 0,
+            "timers": 0
+        }
+    ]
+}

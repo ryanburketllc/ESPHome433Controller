@@ -11,68 +11,44 @@
 	<link href="favicon.ico" rel="icon" type="image/x-icon">
 	<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 	<script>
-		getStartData();
-		makeButtons();
-		getSwitchStatus();
+
+		var urlTESTING = "";
 
 		function makeButtons() {
-			$.get("/names.json", function (data) {
-				var items = [];
-				$.each(data, function (index, value) {
-					items.push('<button id="' + index + '" class="w3-bar-item w3-quarter" style="text-align: center; width:25%;">' + value + '</button>');
-				});
-				items.push('<div class="w3-section w3-center"><button id="_save" type=submit class="w3-button w3-round-xlarge w3-padding-small"></button></div>');
-				items.join("");
-				$('#btnWALL').append(items);
-			});
-		}
-
-		function getStartData() {
-			$.get("/JSONSTART", function (data) {
-				$.each(data, function (index, value) {
-					$('#' + index).html(value);
+			var btnWALL = '#btnWALL';
+			$.get(urlTESTING + "/settings.json", function (json) {
+				$('#title').html(json.settings.name);
+				$('#version').html(json.settings.version);
+				var switches = json.switches;
+				$.each(switches, function (index, value) {
+					var button = $('<button />').addClass('w3-bar-item w3-quarter').attr('id', value.id).attr('data-on', value.on).attr('data-off', value.off).text(value.name).attr('style', 'text-align: center; width:25%;');
+					if (value.status == 1) button.addClass('w3-green');
+					else button.addClass('w3-red');
+					button.appendTo(btnWALL);
 				});
 			});
 		}
 
-		function getSwitchStatus() {
-			$.get("/SWITCHSTATUS", function (data) {
-				$(".w3-bar-item").each(function () {
-					var index = $(this).attr("id");
-					if (data[index] == 1) {
-						$("#" + index).removeClass("w3-red");
-						$("#" + index).addClass("w3-green");
-					}
-					else $("#" + index).addClass("w3-red");
-				});
-				$(".w3-bar-item").click(function () {
-					var b = $(this).attr("id");
-					var a;
-					if ($(this).hasClass("w3-green")) {
-						a = 0;
-						$(this).removeClass("w3-green");
-						$(this).addClass("w3-red");
-					} else if ($(this).hasClass("w3-red")) {
-						a = 1;
-						$(this).removeClass("w3-red");
-						$(this).addClass("w3-green");
-					}
-					$.get("/switchu?c=" + b + a);
-					// setTimeout(function () { getSwitchStatus(); }, 5000);
-				});
-			});
-		}
+		$(document).ready(function () {
+			makeButtons();
 
-		function populatePre(a) {
-			var b = new XMLHttpRequest();
-			b.onreadystatechange = function () {
-				if (this.readyState == 4 && this.status == 200) {
-					document.getElementById("SwitchResponse").textContent = this.responseText;
+			$(document).on("click", '.w3-bar-item', function (event) {
+				var txID = $(event.currentTarget).attr('id');
+				var txCODE = 0;
+				if ($(event.currentTarget).hasClass('w3-green')) {
+					txCODE = $(event.currentTarget).attr('data-off');
+					$(event.currentTarget).removeClass('w3-green').addClass('w3-red');
 				}
-			};
-			b.open("GET", a, true);
-			b.send();
-		}
+				else {
+					txCODE = $(event.currentTarget).attr('data-on');
+					$(event.currentTarget).removeClass('w3-red').addClass('w3-green');
+				}
+				$.get(urlTESTING + "/FLIPSWITCH?id=" + txID + "&c=" + txCODE, function (response) {
+					$('#Response').text(response);
+				});
+			});
+			// // setTimeout(function () { getSwitchStatus(); }, 5000);
+		});
 	</script>
 	<style>
 		body,
@@ -98,17 +74,14 @@
 	<div style="text-align: center">
 		<h1><span id="title">BoxID</span></h1>
 	</div>
-	<hr class="w3-border-grey">
-	<div class="w3-padding-small w3-block" id="btnWALL"></div>
-	<hr class="w3-border-grey">
+	<div id="btnWALL" class="w3-padding-small"></div>
 	<div class="w3-section w3-center">
 		<div>
-			<a id="btnSettings" href="/SETTINGS"
-				class="w3-button w3-round-xlarge w3-padding-small">Settings</a>
-			<a id="btnRestart" href="/RESTART"
-				class="w3-button w3-round-xlarge w3-padding-small">Restart</a>
+			<a id="btnSettings" href="/SETTINGS" class="w3-button w3-round-xlarge w3-padding-small">Settings</a>
+			<a id="btnRestart" href="/RESTART" class="w3-button w3-round-xlarge w3-padding-small">Restart</a>
 		</div>
-		<span id="version">Version</span>
+		<!-- <span id="version">Version</span> -->
+		<pre id="Response"></pre>
 	</div>
 </body>
 
