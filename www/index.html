@@ -12,27 +12,31 @@
 	<script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
 	<script>
 
+		// var urlTESTING = "http://192.168.1.106";
 		var urlTESTING = "";
+		var btnWALL = "btnWALL";
 
 		function makeButtons() {
-			var btnWALL = '#btnWALL';
 			$.get(urlTESTING + "/settings.json", function (json) {
 				$('#title').html(json.settings.name);
 				$('#version').html(json.settings.version);
 				var switches = json.switches;
+				var fieldSet = $('<fieldset />');
 				$.each(switches, function (index, value) {
-					var button = $('<button />').addClass('w3-bar-item w3-quarter').attr('id', value.id).attr('data-on', value.on).attr('data-off', value.off).text(value.name).attr('style', 'text-align: center; width:25%;');
+					var button = $('<button />').attr('id', value.id).addClass('w3-bar-item w3-quarter').attr('data-on', value.on).attr('data-off', value.off).text(value.name).attr('style', 'text-align: center; width:25%;');
 					if (value.status == 1) button.addClass('w3-green');
 					else button.addClass('w3-red');
-					button.appendTo(btnWALL);
+					button.appendTo(fieldSet);
 				});
+				fieldSet.appendTo("#"+btnWALL);
 			});
 		}
 
 		$(document).ready(function () {
 			makeButtons();
 
-			$(document).on("click", '.w3-bar-item', function (event) {
+			$("#" + btnWALL).on("click", ".w3-bar-item", function (event) {
+				$("#" + btnWALL).off("click", ".w3-bar-item");
 				var txID = $(event.currentTarget).attr('id');
 				var txCODE = 0;
 				if ($(event.currentTarget).hasClass('w3-green')) {
@@ -45,10 +49,9 @@
 				}
 				$.get(urlTESTING + "/FLIPSWITCH?id=" + txID + "&c=" + txCODE, function (response) {
 					$('#Response').text(response);
-					setTimeout(function () { window.location.href = urlTESTING + "/"; }, 2000);
+					setTimeout(function () { window.location.href = urlTESTING + "/"; }, 1000);
 				});
 			});
-			// // setTimeout(function () { getSwitchStatus(); }, 5000);
 		});
 	</script>
 	<style>
@@ -68,6 +71,17 @@
 		.content {
 			margin: auto;
 		}
+
+		fieldset {
+            display: block;
+            margin-left: 0px;
+            margin-right: 0px;
+            padding-top: 0px;
+            padding-bottom: 1em;
+            padding-left: 0px;
+            padding-right: 0px;
+            border: 0px;
+        }
 	</style>
 </head>
 
@@ -75,7 +89,9 @@
 	<div style="text-align: center">
 		<h1><span id="title">BoxID</span></h1>
 	</div>
+	<hr class="w3-border-grey">
 	<div id="btnWALL" class="w3-padding-small"></div>
+	<hr class="w3-border-grey">
 	<div class="w3-section w3-center">
 		<div>
 			<a id="btnSettings" href="/SETTINGS" class="w3-button w3-round-xlarge w3-padding-small">Settings</a>

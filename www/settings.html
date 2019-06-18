@@ -7,12 +7,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://www.w3schools.com/w3css/4/w3.css" rel="stylesheet">
     <link href="https://www.w3schools.com/lib/w3-theme-black.css" rel="stylesheet">
+    <!-- <link href="https://www.w3schools.com/lib/w3-theme-blue-grey.css" rel="stylesheet"> -->
     <link href="https://fonts.googleapis.com/css?family=Roboto:100" rel="stylesheet">
     <link href="favicon.ico" rel="icon" type="image/x-icon">
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
     <script>
-        var urlTESTING = "http://192.168.1.106";
+        // var urlTESTING = "http://192.168.1.106";
+        var urlTESTING = "";
         var form = "formSettings";
+        var btnSAVE = "_save";
 
         function makeForm() {
             $.get(urlTESTING + "/settings.json", function (json) {
@@ -51,8 +54,9 @@
                             var dropdown = $('<select />').attr("id", index).addClass("w3-select").attr('name', index);
                             for (var p = -12; p <= 12; p++) {
                                 var option = $('<option />').attr('value', p);
-                                if (p == -5) option.text(p + " hours (Default)").attr('selected', true);
+                                if (p == -5) option.text(p + " hours (Default)");
                                 else option.text(p + " hours");
+                                if (p == value) option.attr('selected', true);
                                 option.appendTo(dropdown);
                             }
                             dropdown.appendTo(label);
@@ -73,7 +77,7 @@
                     button.appendTo(fieldSet);
                 });
                 fieldSet.appendTo('#' + form);
-                var div = $('<div />').addClass("w3-section w3-center");
+                var div = $('<div />').addClass("w3-center");
                 var button = $('<button />').attr('form', form).attr('id', "_save").addClass("w3-button w3-round-xlarge w3-padding-small").text("Save Settings");
                 button.appendTo(div);
                 div.appendTo('#' + form);
@@ -94,8 +98,18 @@
         $(document).ready(function () {
             makeForm();
 
-            $(document).on("click", '#_save', function (event) {
+            $("#" + form).on("click", ".w3-bar-item", function (event) {
+                this.select();
+            });
+
+            $("#" + form).on("click", ".w3-input", function (event) {
+                this.select();
+            });
+
+
+            $("#" + form).on("click", "#" + btnSAVE, function (event) {
                 event.preventDefault();
+				$("#" + form).off("click", "#" + btnSAVE);
                 var jsonData = ConvertFormToJSON('#' + form);
                 jsonData = JSON.stringify(jsonData);
                 var postSettings = {
@@ -108,10 +122,9 @@
                     "processData": false,
                     "data": jsonData
                 }
-                // console.log(postSettings);
                 $.ajax(postSettings).done(function (response) {
                     $('#Response').text(response);
-                    setTimeout(function () { window.location.href = urlTESTING + "/"; }, 2000);
+                    setTimeout(function () { window.location.href = urlTESTING + "/"; }, 1000);
                 });
             });
         });
@@ -154,7 +167,7 @@
     <hr class="w3-border-grey">
     <form id="formSettings" class="w3-padding-small"></form>
     <hr class="w3-border-grey">
-    <div class="w3-section w3-center">
+    <div class="w3-center">
         <div>
             <a id="btnBack" href="/" class="w3-button w3-round-xlarge w3-padding-small">Back</a>
             <a id="btnRestart" href="/RESTART" class="w3-button w3-round-xlarge w3-padding-small">Restart</a>

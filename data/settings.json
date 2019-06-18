@@ -12,14 +12,14 @@
             "on": 35885076,
             "off": 19107860,
             "name": "Air Purifier",
-            "status": 1,
+            "status": 0,
             "timers": 0
         },
         {
             "id": "A2",
             "on": 35883028,
             "off": 19105812,
-            "name": "Unassigned",
+            "name": "Bathroom Warmer",
             "status": 0,
             "timers": 0
         },
@@ -85,20 +85,18 @@
             "off": 18974740,
             "name": "Front Patio",
             "status": 0,
-            "timers": [
-                {
-                    "timeon": "21:00",
-                    "timeoff": "6:00",
-                    "days": "0,1,2,3,4,5,6"
-                }
-            ]
+            "timers": {
+                "timeon": "20:30",
+                "timeoff": "06:00",
+                "days": "0,1,2,3,4,5,6"
+            }
         },
         {
             "id": "C3",
             "on": 35756052,
             "off": 18978836,
             "name": "Dinner Table",
-            "status": 1,
+            "status": 0,
             "timers": 0
         },
         {
