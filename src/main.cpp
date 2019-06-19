@@ -67,6 +67,7 @@ void processSwitchUni(uint32_t &txCODE)
 {
   digitalWrite(LED_BLUE, HIGH);
   mySwitch_tx.enableTransmit(TX_PIN);
+  Serial.println(String(txCODE));
   mySwitch_tx.send(txCODE, LENGTH);
   mySwitch_tx.disableTransmit();
   digitalWrite(LED_BLUE, LOW);
@@ -215,7 +216,7 @@ void serverStuff(void)
       // processSwitchUni(sPARAM);
       processSwitchUni(txCODE);
       updateSettings(txID);
-      request->send(200, "text/plain", "Switched " + txID);
+      request->send(200, "text/plain", "Switched");
     }
     else
       request->send(500, "text/plain", "Error while switching " + txID);
